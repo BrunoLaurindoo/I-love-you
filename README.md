@@ -1,1 +1,132 @@
-# I-love-you
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neon Love Rain - Otimizado</title>
+<style>
+    body { margin:0; overflow:hidden; background: radial-gradient(circle at center, #12001a, #000); cursor:pointer; }
+    canvas { display:block; }
+</style>
+</head>
+<body>
+<canvas id="loveCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById('loveCanvas');
+const ctx = canvas.getContext('2d');
+
+let W = canvas.width = window.innerWidth;
+let H = canvas.height = window.innerHeight;
+
+window.addEventListener('resize', () => {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+});
+
+// Letras caindo
+const letters = [];
+const LETTERS = ['t','e','a','m','o'];
+const MAX_LETTERS = 200;
+
+function random(min,max){ return Math.random()*(max-min)+min; }
+
+class Letter {
+    constructor() {
+        this.x = random(0,W);
+        this.y = random(-H,0);
+        this.size = random(18,36);
+        this.speed = random(1,2.5);
+        this.letter = LETTERS[Math.floor(Math.random()*LETTERS.length)];
+        this.color = `hsl(${random(300,350)},100%,70%)`;
+        this.trail = [];
+    }
+    update(){
+        this.y += this.speed;
+        this.trail.push({x:this.x, y:this.y});
+        if(this.trail.length>8) this.trail.shift();
+        if(this.y>H+20) {
+            this.y = random(-50,0);
+            this.x = random(0,W);
+            this.trail = [];
+        }
+    }
+    draw(){
+        // trail
+        for(let i=0;i<this.trail.length;i++){
+            const t = this.trail[i];
+            ctx.fillStyle = `hsla(330,100%,70%,${i/this.trail.length})`;
+            ctx.beginPath();
+            ctx.arc(t.x,t.y, this.size*0.15,0,Math.PI*2);
+            ctx.fill();
+        }
+        // letra
+        ctx.fillStyle = this.color;
+        ctx.font = `${this.size}px Arial`;
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 15;
+        ctx.fillText(this.letter,this.x,this.y);
+    }
+}
+
+for(let i=0;i<MAX_LETTERS;i++){
+    letters.push(new Letter());
+}
+
+// Fogos de artifício
+const fireworks = [];
+
+class Firework {
+    constructor(x,y){
+        this.particles = [];
+        for(let i=0;i<50;i++){
+            const angle = Math.random()*Math.PI*2;
+            const speed = random(2,6);
+            const color = `hsl(${random(300,350)},100%,70%)`;
+            this.particles.push({x:x, y:y, vx:Math.cos(angle)*speed, vy:Math.sin(angle)*speed, alpha:1, color:color});
+        }
+    }
+    update(){
+        this.particles.forEach(p=>{
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.05; // gravidade
+            p.alpha -= 0.02;
+        });
+        this.particles = this.particles.filter(p=>p.alpha>0);
+    }
+    draw(){
+        this.particles.forEach(p=>{
+            ctx.fillStyle = `hsla(${p.color.match(/\d+/)[0]},100%,70%,${p.alpha})`;
+            ctx.beginPath();
+            ctx.arc(p.x,p.y,3,0,Math.PI*2);
+            ctx.fill();
+        });
+    }
+    done(){ return this.particles.length===0; }
+}
+
+// Click/touch para criar fogos
+function createFirework(x,y){ fireworks.push(new Firework(x,y)); }
+canvas.addEventListener('click', e=>createFirework(e.clientX,e.clientY));
+canvas.addEventListener('touchstart', e=>{
+    const t = e.touches[0];
+    createFirework(t.clientX,t.clientY);
+});
+
+// Animação
+function animate(){
+    ctx.clearRect(0,0,W,H);
+
+    letters.forEach(l=>{ l.update(); l.draw(); });
+    fireworks.forEach(f=>{ f.update(); f.draw(); });
+    for(let i=fireworks.length-1;i>=0;i--){
+        if(fireworks[i].done()) fireworks.splice(i,1);
+    }
+
+    requestAnimationFrame(animate);
+}
+animate();
+</script>
+</body>
+</html>
